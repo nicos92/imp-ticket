@@ -28,7 +28,7 @@ var (
 	procWritePrinter      = winspool.NewProc("WritePrinter")
 )
 
-type DOC_INFO_1 struct {
+type docInfo1 struct {
 	pDocName    *uint16
 	pOutputFile *uint16
 	pDatatype   *uint16
@@ -88,34 +88,23 @@ func (a *App) imprimirPares(cantidadCodigos int) error {
 		return err
 	}
 
-	ultimoNumero := a.leerUltimoNumero()
-
+	contador := a.leerUltimoNumero()
 	totalPares := cantidadCodigos / 2
-	contador := ultimoNumero
 
 	for i := range totalPares {
-		contador++
-		if contador > maxContador {
-			contador = 1
-		}
+		contador = avanzarContador(contador)
 		c1 := fmt.Sprintf("%07d", contador)
 
-		contador++
-		if contador > maxContador {
-			contador = 1
-		}
+		contador = avanzarContador(contador)
 		c2 := fmt.Sprintf("%07d", contador)
 
 		zpl := generarZPL(c1, c2, time.Now())
 		if err := imprimirTextoPlano(impresora, zpl); err != nil {
-			return fmt.Errorf("error en par %d: %v", i+1, err)
+			return fmt.Errorf("par %d: %w", i+1, err)
 		}
 	}
 
-	if err := a.guardarUltimoNumero(contador); err != nil {
-		return err
-	}
-	return nil
+	return a.guardarUltimoNumero(contador)
 }
 
 func (a *App) leerUltimoNumero() int {
@@ -142,9 +131,20 @@ func (a *App) guardarUltimoNumero(num int) error {
 	return os.WriteFile(a.configPath, fmt.Appendf(nil, "%d", num), 0644)
 }
 
+func avanzarContador(actual int) int {
+	actual++
+	if actual > maxContador {
+		return 1
+	}
+	return actual
+}
+
 func obtenerImpresoraPredeterminada() (string, error) {
 	var size uint32
-	procGetDefaultPrinter.Call(0, uintptr(unsafe.Pointer(&size)))
+	procGetDefaultPrinter.Call(
+		0,
+		uintptr(unsafe.Pointer(&size)),
+	)
 	if size == 0 {
 		return "", fmt.Errorf("no se pudo determinar el tamaño")
 	}
@@ -155,18 +155,38 @@ func obtenerImpresoraPredeterminada() (string, error) {
 		uintptr(unsafe.Pointer(&size)),
 	)
 	if ret == 0 {
-		return "", fmt.Errorf("error al obtener impresora: %v", err)
+		return "", fmt.Errorf("error al obtener impresora: %w", err)
 	}
 
 	return syscall.UTF16ToString(buffer), nil
 }
 
-func imprimirTextoPlano(nombreImpresora string, texto string) error {
-	var hPrinter uintptr
-
-	pPrinterName, err := syscall.UTF16PtrFromString(nombreImpresora)
+func imprimirTextoPlano(nombreImpresora, texto string) error {
+	hPrinter, err := abrirImpresora(nombreImpresora)
 	if err != nil {
 		return err
+	}
+	defer procClosePrinter.Call(hPrinter)
+
+	if err := iniciarDocumento(hPrinter); err != nil {
+		return err
+	}
+	defer procEndDocPrinter.Call(hPrinter)
+
+	if err := iniciarPagina(hPrinter); err != nil {
+		return err
+	}
+	defer procEndPagePrinter.Call(hPrinter)
+
+	return escribirDatos(hPrinter, texto)
+}
+
+func abrirImpresora(nombre string) (uintptr, error) {
+	var hPrinter uintptr
+
+	pPrinterName, err := syscall.UTF16PtrFromString(nombre)
+	if err != nil {
+		return 0, fmt.Errorf("nombre de impresora inválido: %w", err)
 	}
 
 	ret, _, err := procOpenPrinter.Call(
@@ -175,48 +195,53 @@ func imprimirTextoPlano(nombreImpresora string, texto string) error {
 		0,
 	)
 	if ret == 0 {
-		return fmt.Errorf("no se pudo abrir la impresora: %v", err)
+		return 0, fmt.Errorf("no se pudo abrir la impresora: %w", err)
 	}
-	defer procClosePrinter.Call(hPrinter)
+	return hPrinter, nil
+}
 
+func iniciarDocumento(hPrinter uintptr) error {
 	docName, _ := syscall.UTF16PtrFromString("NSS-Default-Imp-Ticket")
 	dataType, _ := syscall.UTF16PtrFromString("RAW")
 
-	di := DOC_INFO_1{
+	di := docInfo1{
 		pDocName:    docName,
 		pOutputFile: nil,
 		pDatatype:   dataType,
 	}
 
-	ret, _, err = procStartDocPrinter.Call(
+	ret, _, err := procStartDocPrinter.Call(
 		hPrinter,
 		1,
 		uintptr(unsafe.Pointer(&di)),
 	)
 	if ret == 0 {
-		return fmt.Errorf("error en StartDocPrinter: %v", err)
+		return fmt.Errorf("error en StartDocPrinter: %w", err)
 	}
-	defer procEndDocPrinter.Call(hPrinter)
+	return nil
+}
 
-	ret, _, _ = procStartPagePrinter.Call(hPrinter)
+func iniciarPagina(hPrinter uintptr) error {
+	ret, _, _ := procStartPagePrinter.Call(hPrinter)
 	if ret == 0 {
 		return fmt.Errorf("error en StartPagePrinter")
 	}
-	defer procEndPagePrinter.Call(hPrinter)
+	return nil
+}
 
+func escribirDatos(hPrinter uintptr, texto string) error {
 	bytesTexto := []byte(texto)
 	var bytesEscritos uint32
 
-	ret, _, err = procWritePrinter.Call(
+	ret, _, err := procWritePrinter.Call(
 		hPrinter,
 		uintptr(unsafe.Pointer(&bytesTexto[0])),
 		uintptr(len(bytesTexto)),
 		uintptr(unsafe.Pointer(&bytesEscritos)),
 	)
 	if ret == 0 {
-		return fmt.Errorf("error al escribir datos: %v", err)
+		return fmt.Errorf("error al escribir datos: %w", err)
 	}
-
 	return nil
 }
 
@@ -241,5 +266,9 @@ func generarZPL(codigo1, codigo2 string, fecha time.Time) string {
 	^FO420,030^A0R,50,90^FDZ%s^FS
 	^XZ`
 
-	return fmt.Sprintf(plantillaZPL, fechaFormateada, codigo1, fechaFormateada, codigo2)
+	return fmt.Sprintf(
+		plantillaZPL,
+		fechaFormateada, codigo1,
+		fechaFormateada, codigo2,
+	)
 }
