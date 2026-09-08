@@ -89,9 +89,6 @@ func (a *App) imprimirPares(cantidadCodigos int) error {
 	}
 
 	ultimoNumero := a.leerUltimoNumero()
-	if err := a.guardarUltimoNumero(ultimoNumero + cantidadCodigos); err != nil {
-		return err
-	}
 
 	totalPares := cantidadCodigos / 2
 	contador := ultimoNumero
@@ -115,6 +112,9 @@ func (a *App) imprimirPares(cantidadCodigos int) error {
 		}
 	}
 
+	if err := a.guardarUltimoNumero(contador); err != nil {
+		return err
+	}
 	return nil
 }
 
