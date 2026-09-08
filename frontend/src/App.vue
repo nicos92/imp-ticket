@@ -15,6 +15,7 @@ const cantidadSeleccionada = ref(0)
 const mensajeEstado = ref('')
 
 const opciones = [
+  {valor: 10, descripcion: '10 etiquetas (5 pares)'},
   {valor: 100, descripcion: '100 etiquetas (50 pares)'},
   {valor: 1000, descripcion: '1.000 etiquetas (500 pares)'},
   {valor: 3000, descripcion: '3.000 etiquetas (1.500 pares)'},
