@@ -1,10 +1,11 @@
-import { ref, readonly } from 'vue'
+import { ref, readonly, onMounted, onUnmounted } from 'vue'
 import {
   GetImpresoraActual,
   GetContadorActual,
   Imprimir,
   TestImpresora,
 } from '../../wailsjs/go/main/App'
+import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
 
 export interface OpcionImpresion {
   valor: number
@@ -31,9 +32,30 @@ export function useImpresion() {
   const opciones = OPCIONES_DEFAULT
 
   async function cargarEstado() {
-    impresora.value = await GetImpresoraActual()
-    contador.value = await GetContadorActual()
+    const [imp, cont] = await Promise.all([
+      GetImpresoraActual(),
+      GetContadorActual(),
+    ])
+    impresora.value = imp
+    contador.value = cont
   }
+
+  onMounted(() => {
+    EventsOn('print:done', () => {
+      imprimiendo.value = false
+      mensajeEstado.value = 'Proceso finalizado correctamente.'
+      cargarEstado()
+    })
+    EventsOn('print:error', (msg: string) => {
+      imprimiendo.value = false
+      mensajeEstado.value = `Error: ${msg}`
+    })
+  })
+
+  onUnmounted(() => {
+    EventsOff('print:done')
+    EventsOff('print:error')
+  })
 
   function pedirConfirmacion(valor: number) {
     cantidadSeleccionada.value = valor
@@ -50,12 +72,9 @@ export function useImpresion() {
     mensajeEstado.value = 'Imprimiendo, espere por favor...'
     try {
       await Imprimir(cantidadSeleccionada.value)
-      mensajeEstado.value = 'Proceso finalizado correctamente.'
     } catch (e) {
-      mensajeEstado.value = `Error: ${e}`
-    } finally {
       imprimiendo.value = false
-      cargarEstado()
+      mensajeEstado.value = `Error: ${e}`
     }
   }
 
