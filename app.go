@@ -5,16 +5,22 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"imp-ticket/internal/counter"
 	"imp-ticket/internal/printer"
 	"imp-ticket/internal/zpl"
 )
 
+const maxCantidadImpresion = 20000
+
 type App struct {
 	ctx        context.Context
 	configPath string
+	mu         sync.Mutex
 }
 
 func NewApp() *App {
@@ -47,7 +53,25 @@ func (a *App) GetContadorActual() int {
 }
 
 func (a *App) Imprimir(cantidad int) error {
-	return a.imprimirPares(cantidad)
+	if err := validarCantidad(cantidad); err != nil {
+		return err
+	}
+
+	go a.imprimirPares(cantidad)
+	return nil
+}
+
+func validarCantidad(cantidad int) error {
+	if cantidad <= 0 {
+		return fmt.Errorf("la cantidad debe ser mayor a cero")
+	}
+	if cantidad%2 != 0 {
+		return fmt.Errorf("la cantidad debe ser un número par")
+	}
+	if cantidad > maxCantidadImpresion {
+		return fmt.Errorf("la cantidad excede el máximo permitido de %d", maxCantidadImpresion)
+	}
+	return nil
 }
 
 func (a *App) TestImpresora() error {
@@ -60,17 +84,21 @@ func (a *App) TestImpresora() error {
 	return printer.ImprimirTextoPlano(impresora, zplData)
 }
 
-func (a *App) imprimirPares(cantidadCodigos int) error {
+func (a *App) imprimirPares(cantidadCodigos int) {
 	impresora, err := printer.ObtenerImpresoraPredeterminada()
 	if err != nil {
-		return err
+		a.emitirError(err)
+		return
 	}
 
+	a.mu.Lock()
 	contador := counter.LeerUltimo(a.configPath)
 	nuevoUltimoNumero := contador + cantidadCodigos
-	errNuevoUltimoNumero := counter.GuardarUltimo(a.configPath, nuevoUltimoNumero)
-	if errNuevoUltimoNumero != nil {
-		return errNuevoUltimoNumero
+	errGuardar := counter.GuardarUltimo(a.configPath, nuevoUltimoNumero)
+	a.mu.Unlock()
+	if errGuardar != nil {
+		a.emitirError(errGuardar)
+		return
 	}
 	totalPares := cantidadCodigos / 2
 
@@ -83,9 +111,14 @@ func (a *App) imprimirPares(cantidadCodigos int) error {
 
 		zplData := zpl.Generar(c1, c2, time.Now())
 		if err := printer.ImprimirTextoPlano(impresora, zplData); err != nil {
-			return fmt.Errorf("par %d: %w", i+1, err)
+			a.emitirError(fmt.Errorf("par %d: %w", i+1, err))
+			return
 		}
 	}
 
-	return nil
+	runtime.EventsEmit(a.ctx, "print:done")
+}
+
+func (a *App) emitirError(err error) {
+	runtime.EventsEmit(a.ctx, "print:error", err.Error())
 }
