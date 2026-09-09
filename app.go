@@ -67,6 +67,11 @@ func (a *App) imprimirPares(cantidadCodigos int) error {
 	}
 
 	contador := counter.LeerUltimo(a.configPath)
+	nuevoUltimoNumero := contador + cantidadCodigos
+	errNuevoUltimoNumero := counter.GuardarUltimo(a.configPath, nuevoUltimoNumero)
+	if errNuevoUltimoNumero != nil {
+		return errNuevoUltimoNumero
+	}
 	totalPares := cantidadCodigos / 2
 
 	for i := range totalPares {
@@ -82,5 +87,5 @@ func (a *App) imprimirPares(cantidadCodigos int) error {
 		}
 	}
 
-	return counter.GuardarUltimo(a.configPath, contador)
+	return nil
 }
