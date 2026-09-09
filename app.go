@@ -102,6 +102,15 @@ func (a *App) imprimirPares(cantidadCodigos int) {
 	}
 	totalPares := cantidadCodigos / 2
 
+	shouldReturn := recorrerPares(totalPares, contador, impresora, a)
+	if shouldReturn {
+		return
+	}
+
+	runtime.EventsEmit(a.ctx, "print:done")
+}
+
+func recorrerPares(totalPares int, contador int, impresora string, a *App) bool {
 	for i := range totalPares {
 		contador = counter.Avanzar(contador)
 		c1 := fmt.Sprintf("%07d", contador)
@@ -112,11 +121,10 @@ func (a *App) imprimirPares(cantidadCodigos int) {
 		zplData := zpl.Generar(c1, c2, time.Now())
 		if err := printer.ImprimirTextoPlano(impresora, zplData); err != nil {
 			a.emitirError(fmt.Errorf("par %d: %w", i+1, err))
-			return
+			return true
 		}
 	}
-
-	runtime.EventsEmit(a.ctx, "print:done")
+	return false
 }
 
 func (a *App) emitirError(err error) {
