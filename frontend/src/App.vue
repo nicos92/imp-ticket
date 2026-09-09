@@ -5,6 +5,7 @@ import PrinterInfo from './components/PrinterInfo.vue'
 import PrintOptions from './components/PrintOptions.vue'
 import ConfirmModal from './components/ConfirmModal.vue'
 import StatusMessage from './components/StatusMessage.vue'
+import ProgressBar from './components/ProgressBar.vue'
 
 const {
   impresora,
@@ -14,6 +15,7 @@ const {
   cantidadSeleccionada,
   mensajeEstado,
   opciones,
+  progreso,
   cargarEstado,
   pedirConfirmacion,
   cancelarImpresion,
@@ -29,7 +31,13 @@ onMounted(cargarEstado)
     <h1>Pre-Etiquetas</h1>
 
     <PrinterInfo :impresora="impresora" :contador="contador" />
+    <StatusMessage :imprimiendo="imprimiendo" :mensaje="mensajeEstado" />
 
+    <ProgressBar
+      :actual="progreso.actual"
+      :total="progreso.total"
+      :visible="imprimiendo"
+    />
     <PrintOptions
       :opciones="opciones"
       :deshabilitado="imprimiendo"
@@ -37,7 +45,7 @@ onMounted(cargarEstado)
       @probar="pruebaImpresora"
     />
 
-    <StatusMessage :imprimiendo="imprimiendo" :mensaje="mensajeEstado" />
+
 
     <ConfirmModal
       :visible="showModal"
