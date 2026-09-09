@@ -16,9 +16,9 @@ defineProps<{
 .info {
   background: rgba(255, 255, 255, 0.06);
   border-radius: 8px;
-  padding: 1rem 1.5rem;
+  padding: 1rem 1rem;
   margin-bottom: 2rem;
-  text-align: left;
+  text-align: center;
 }
 
 .info p {

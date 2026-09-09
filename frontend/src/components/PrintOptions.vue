@@ -38,7 +38,7 @@ const emit = defineEmits<{
 .botones {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .btn {
