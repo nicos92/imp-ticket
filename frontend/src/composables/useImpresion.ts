@@ -21,6 +21,11 @@ const OPCIONES_DEFAULT: OpcionImpresion[] = [
   { valor: 10000, descripcion: '10.000 etiquetas (5.000 pares)' },
 ]
 
+export interface ProgresoImpresion {
+  actual: number
+  total: number
+}
+
 export function useImpresion() {
   const impresora = ref('')
   const contador = ref(0)
@@ -28,6 +33,7 @@ export function useImpresion() {
   const showModal = ref(false)
   const cantidadSeleccionada = ref(0)
   const mensajeEstado = ref('')
+  const progreso = ref<ProgresoImpresion>({ actual: 0, total: 0 })
 
   const opciones = OPCIONES_DEFAULT
 
@@ -41,18 +47,24 @@ export function useImpresion() {
   }
 
   onMounted(() => {
+    EventsOn('print:progress', (data: ProgresoImpresion) => {
+      progreso.value = data
+    })
     EventsOn('print:done', () => {
       imprimiendo.value = false
+      progreso.value = { actual: 0, total: 0 }
       mensajeEstado.value = 'Proceso finalizado correctamente.'
       cargarEstado()
     })
     EventsOn('print:error', (msg: string) => {
       imprimiendo.value = false
+      progreso.value = { actual: 0, total: 0 }
       mensajeEstado.value = `Error: ${msg}`
     })
   })
 
   onUnmounted(() => {
+    EventsOff('print:progress')
     EventsOff('print:done')
     EventsOff('print:error')
   })
@@ -98,6 +110,7 @@ export function useImpresion() {
     showModal,
     cantidadSeleccionada: readonly(cantidadSeleccionada),
     mensajeEstado: readonly(mensajeEstado),
+    progreso: readonly(progreso),
     opciones,
     cargarEstado,
     pedirConfirmacion,
