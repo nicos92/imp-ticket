@@ -26,8 +26,7 @@ onMounted(cargarEstado)
 
 <template>
   <main class="container">
-    <h1>Imp-Ticket</h1>
-    <p class="subtitle">Impresión de etiquetas</p>
+    <h1>Pre-Etiquetas</h1>
 
     <PrinterInfo :impresora="impresora" :contador="contador" />
 
