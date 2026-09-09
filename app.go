@@ -123,6 +123,10 @@ func recorrerPares(totalPares int, contador int, impresora string, a *App) bool 
 			a.emitirError(fmt.Errorf("par %d: %w", i+1, err))
 			return true
 		}
+		runtime.EventsEmit(a.ctx, "print:progress", map[string]int{
+			"actual": i + 1,
+			"total":  totalPares,
+		})
 	}
 	return false
 }
