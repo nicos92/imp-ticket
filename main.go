@@ -18,8 +18,8 @@ func main() {
 	// Create application with options
 	err := wails.Run(&options.App{
 		Title:     "imp-ticket",
-		Width:     1024,
-		Height:    768,
+		Width:     800,
+		Height:    600,
 		MinWidth:  600,
 		MinHeight: 400,
 		AssetServer: &assetserver.Options{
