@@ -11,7 +11,7 @@ func Generar(codigo1, codigo2 string, fecha time.Time) string {
 	codBarra1 := formatoCodigo(codigo1)
 	codBarra2 := formatoCodigo(codigo2)
 
-	plantilla := `^XA
+	plantilla := `^JZN^XA
 	^MMT
 	^PW832
 	^LL392
