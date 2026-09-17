@@ -19,7 +19,7 @@ func main() {
 	err := wails.Run(&options.App{
 		Title:     "imp-ticket",
 		Width:     800,
-		Height:    800,
+		Height:    700,
 		MinWidth:  400,
 		MinHeight: 400,
 		AssetServer: &assetserver.Options{

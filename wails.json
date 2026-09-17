@@ -1,13 +1,19 @@
 {
   "$schema": "https://wails.io/schemas/config.v2.json",
   "name": "imp-ticket",
+  "info": {
+    "productVersion": "1.0.2",
+    "companyName": "Nicolás Sandoval",
+    "productName": "imp-ticket",
+    "copyright": "Copyright 2026 Nicolás Sandoval"
+  },
   "outputfilename": "imp-ticket",
   "frontend:install": "npm install",
   "frontend:build": "npm run build",
   "frontend:dev:watcher": "npm run dev",
   "frontend:dev:serverUrl": "auto",
   "author": {
-    "name": "nicos92",
+    "name": "Nicolás Sandoval",
     "email": "nicolassandoval140692@gmail.com"
   }
 }
